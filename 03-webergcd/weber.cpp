@@ -1,12 +1,4 @@
-#include <chrono>
-#include <gmp.h>
-#include <gmpxx.h>
-#include <iostream>
-#include <map>
-#include <random>
-
-using namespace std;
-using namespace std::chrono;
+#include "weber.h"
 
 int bit_length(mpz_class x) {
   if (x < 0)
@@ -57,12 +49,13 @@ mpz_class dmod(mpz_class u0, mpz_class v0, int w) {
   return u >> max(d + 1, 0);
 }
 
-mpz_class weber_gcd(mpz_class u0, mpz_class v0, int w) {
+mpz_class weber_gcd(mpz_class u0, mpz_class v0, int w, int& iter) {
   if (u0 < v0)
     swap(u0, v0);
   auto s = [](mpz_class v) { return 64; };
   auto t = [](mpz_class v) { return 192; };
   mpz_class u = u0, v = v0;
+  iter = 0;
   while (v != 0) {
     // cout << u << " " << v << endl;
     if (bit_length(u) - bit_length(v) > s(v)) {
@@ -76,39 +69,8 @@ mpz_class weber_gcd(mpz_class u0, mpz_class v0, int w) {
       u /= 2;
     }
     swap(u, v);
+    iter++;
   }
   mpz_class x = gcd(dmod(v0, u, w), u);
   return gcd(dmod(u0, x, w), x);
-}
-
-int main() {
-  gmp_randclass gen(gmp_randinit_default);
-  gen.seed(time(0));
-  for (int bits : {50, 200, 500, 1000, 2000, 5000, 10000, 40000}) {
-    mpz_class q1, q2, g, h;
-    q1 = gen.get_z_bits(bits);
-    q2 = gen.get_z_bits(bits);
-    steady_clock::time_point start = steady_clock::now();
-    mpz_class n1 = q1, n2 = q2;
-    int p1 = 0, p2 = 0;
-    while (n1 % 2 == 0) {
-      n1 >>= 1;
-      p1++;
-    }
-    while (n2 % 2 == 0) {
-      n2 >>= 1;
-      p2++;
-    }
-    /// cout << q1 << ' ' << q2 << endl;
-    g = weber_gcd(n1, n2, 64) * (1_mpz << min(p1, p2));
-    // cout << g << endl;
-    duration<double> d = steady_clock::now() - start;
-    cout << bits << "bits Weber GCD: \t" << d.count() << endl;
-    start = steady_clock::now();
-    h = gcd(q1, q2);
-    d = steady_clock::now() - start;
-    cout << bits << "bits GMP's GCD: \t" << d.count() << endl;
-    if (g != h)
-      cout << "Error detected" << endl;
-  }
 }
