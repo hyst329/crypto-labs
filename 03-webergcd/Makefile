@@ -1,4 +1,4 @@
 all: weber
 
 weber: weber.cpp
-	g++ -g weber.cpp -lboost_system -lboost_chrono -o ../build/weber
+	g++ -g weber.cpp -lgmpxx -lgmp -o ../build/weber
