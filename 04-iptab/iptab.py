@@ -1,5 +1,6 @@
 import argparse
 import ipaddress
+import subprocess
 
 
 def check_port(s):
@@ -66,5 +67,15 @@ ports = get_port_range(args.ports)
 
 for ip in ips:
     print("*** Scanning ip %s ***" % ip)
+    nmap_ports = ",".join(str(p) for p in ports)
+    res = subprocess.check_output("nmap -oG - --reason -p %s %s"
+                                  % (nmap_ports, ip))
+    i = res.find(b"Ignored State")
+    istate = res[i + 15:res.find(b" ", i + 16)].decode("utf-8") if i >= 0 else "unlisted"
+    ps = res.find(b"Ports:")
     for port in ports:
         print("Checking port %s..." % port, end='')
+        b = res.find(b"%d/" % port, ps + 1)
+        if b >= 0: b += len(b"%d/" % port)
+        e = res.find(b"/", b + 1)
+        print(res[b:e].decode("utf-8") if b >= 0 else istate)
